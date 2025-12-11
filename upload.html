@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>Upload File to Cloud (Supabase)</h2>
+
+<input type="file" id="fileInput" />
+<button onclick="uploadFile()">Upload</button>
+
+<h3>Uploaded Files:</h3>
+<div id="fileList"></div>
+
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const SUPABASE_URL = "https://nydnypiefhadtbjaoygl.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_zSNF6bT2nCOZLlv5NYfBDA_ljq0TKS5";
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// -----------------------------
+// 1️⃣ LOAD ALL FILES ON PAGE LOAD
+// -----------------------------
+async function loadFiles() {
+  const { data, error } = await supabase.storage.from("uploads").list("", {
+    limit: 1000
+  });
+
+  if (error) {
+    document.getElementById("fileList").innerHTML = "Error loading files.";
+    return;
+  }
+
+  let html = "";
+  for (const file of data) {
+    const { data: urlData } = supabase.storage
+      .from("uploads")
+      .getPublicUrl(file.name);
+
+    html += `
+      <p>
+        <a href="${urlData.publicUrl}" target="_blank">${file.name}</a>
+      </p>
+    `;
+  }
+
+  document.getElementById("fileList").innerHTML = html;
+}
+
+// Load files when page opens
+loadFiles();
+
+// -----------------------------
+// 2️⃣ UPLOAD A FILE
+// -----------------------------
+window.uploadFile = async function () {
+  const file = document.getElementById("fileInput").files[0];
+
+  if (!file) {
+    alert("Select a file first!");
+    return;
+  }
+
+  const filePath = Date.now() + "_" + file.name;
+
+  const { error } = await supabase.storage
+    .from("uploads")
+    .upload(filePath, file);
+
+  if (error) {
+    alert("Upload failed: " + error.message);
+    return;
+  }
+
+  alert("Upload successful!");
+
+  // Reload file list so your friend can see it instantly
+  loadFiles();
+};
+</script>
+
+</body>
+</html>
